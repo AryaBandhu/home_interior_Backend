@@ -103,9 +103,12 @@ CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
 
 # CORS
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+from decouple import config
+
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000"
+).split(",")
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
