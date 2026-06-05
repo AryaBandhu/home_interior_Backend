@@ -1,6 +1,8 @@
 import os
-from .dev import *
 
-# Use production settings if DJANGO_ENV is set to production
-if os.environ.get('DJANGO_ENV') == 'dev':
+env = os.environ.get('DJANGO_ENV', 'dev')
+
+if env == 'production':
     from .prod import *
+else:
+    from .dev import *

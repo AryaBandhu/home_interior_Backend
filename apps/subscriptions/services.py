@@ -1,60 +1,83 @@
-import stripe
+import razorpay
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .models import SubscriptionPlan, UserSubscription
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
+client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 
-def create_checkout_session(user, plan):
-    """Create Stripe checkout session — supports Card, Google Pay, Apple Pay"""
+def create_order(user, plan):
+    """
+    Create a Razorpay Order server-side.
+    The frontend uses this order_id to open the Razorpay checkout popup.
+    """
     try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],  # google pay + apple pay auto added by stripe
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': plan.name,
-                        'description': plan.description or f'{plan.duration_days} days subscription',
-                    },
-                    'unit_amount': int(plan.price * 100),  # stripe uses cents
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=f"{settings.FRONTEND_URL}/payment/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{settings.FRONTEND_URL}/payment/cancel",
-            metadata={
+        order = client.order.create({
+            'amount': int(plan.price * 100),   # paise (INR) or smallest currency unit
+            'currency': 'INR',                  # change to your currency if needed
+            'receipt': f'user_{user.id}_plan_{plan.id}',
+            'notes': {
                 'user_id': str(user.id),
                 'plan_id': str(plan.id),
             }
-        )
-        return {'success': True, 'checkout_url': session.url, 'session_id': session.id}
-    except stripe.error.StripeError as e:
+        })
+        return {
+            'success': True,
+            'order_id': order['id'],
+            'amount': order['amount'],
+            'currency': order['currency'],
+            'key_id': settings.RAZORPAY_KEY_ID,   # frontend needs this to open checkout
+        }
+    except razorpay.errors.BadRequestError as e:
         return {'success': False, 'error': str(e)}
 
 
-def activate_subscription(user, plan):
-    """Activate subscription after successful payment"""
+def verify_and_activate(user, plan, payment_data):
+    """
+    Verify Razorpay payment signature, then activate subscription.
+    Call this after frontend completes payment and sends back payment details.
+
+    payment_data must contain:
+        razorpay_order_id
+        razorpay_payment_id
+        razorpay_signature
+    """
+    try:
+        client.utility.verify_payment_signature({
+            'razorpay_order_id':   payment_data['razorpay_order_id'],
+            'razorpay_payment_id': payment_data['razorpay_payment_id'],
+            'razorpay_signature':  payment_data['razorpay_signature'],
+        })
+    except razorpay.errors.SignatureVerificationError:
+        return {'success': False, 'error': 'Invalid payment signature'}
+
+    subscription = activate_subscription(
+        user, plan, payment_reference=payment_data['razorpay_payment_id']
+    )
+    return {'success': True, 'subscription': subscription}
+
+
+def activate_subscription(user, plan, payment_reference=''):
+    """Activate subscription after verified payment."""
     expires_at = timezone.now() + timedelta(days=plan.duration_days)
 
-    # deactivate any existing active subscription
+    # Deactivate any existing active subscription
     UserSubscription.objects.filter(
         user=user,
         status=UserSubscription.STATUS_ACTIVE
     ).update(status=UserSubscription.STATUS_EXPIRED)
 
-    # create new subscription
+    # Create new subscription
     subscription = UserSubscription.objects.create(
         user=user,
         plan=plan,
         status=UserSubscription.STATUS_ACTIVE,
         expires_at=expires_at,
+        payment_reference=payment_reference,
     )
 
-    # update user flags
+    # Update user flags
     user.is_subscribed = True
     user.subscription_end_date = expires_at
     user.save()
@@ -63,7 +86,7 @@ def activate_subscription(user, plan):
 
 
 def check_and_expire_subscriptions(user):
-    """Check if subscription has expired and update accordingly"""
+    """Check if subscription has expired and update accordingly."""
     if not user.is_subscribed:
         return
 

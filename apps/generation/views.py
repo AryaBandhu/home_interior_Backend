@@ -81,9 +81,8 @@ class GenerationView(APIView):
             status=GenerationJob.STATUS_PROCESSING,
         )
 
-        # call BFL API
-        image_url = request.build_absolute_uri(job.input_image.url)
-        result = generate_images(job.input_image.path, prompt_text, num_samples) 
+        # call AI API
+        result = generate_images(job.input_image.path, prompt_text, num_samples)
 
         if not result['success']:
             job.status = GenerationJob.STATUS_FAILED
@@ -94,10 +93,17 @@ class GenerationView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        # save generated images
-        for image_url in result['image_urls']:
+        # save generated images from base64
+        import base64
+        for img_b64 in result.get('image_b64_list', []):
+            filename = f"{uuid.uuid4()}.jpg"
+            generated = GeneratedImage(job=job)
+            generated.image.save(filename, ContentFile(base64.b64decode(img_b64)), save=True)
+
+        # save generated images from URLs
+        for img_url in result.get('image_urls', []):
             try:
-                img_response = requests.get(image_url, timeout=10)
+                img_response = requests.get(img_url, timeout=10)
                 img_response.raise_for_status()
                 filename = f"{uuid.uuid4()}.jpg"
                 generated = GeneratedImage(job=job)

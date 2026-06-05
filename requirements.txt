@@ -33,7 +33,9 @@ PyJWT==2.12.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
 redis==7.4.0
+razorpay==1.4.2
 requests==2.33.1
+setuptools<70
 six==1.17.0
 sqlparse==0.5.5
 stripe==15.0.1
