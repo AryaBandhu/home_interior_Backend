@@ -1,0 +1,16 @@
+[Unit]
+Description=Interior Design Celery Worker
+After=network.target redis.service
+
+[Service]
+User=deploy
+Group=www-data
+WorkingDirectory=/home/deploy/Interior_Design_Server
+Environment="DJANGO_ENV=production"
+Environment="DJANGO_SETTINGS_MODULE=config.settings.prod"
+ExecStart=/home/deploy/Interior_Design_Server/venv/bin/celery -A config worker --loglevel=info
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

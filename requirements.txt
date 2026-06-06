@@ -10,6 +10,7 @@ click-didyoumean==0.3.1
 click-plugins==1.1.1.2
 click-repl==0.3.0
 cryptography==46.0.7
+dj-database-url==3.1.2
 dj-rest-auth==7.2.0
 Django==6.0.4
 django-allauth==65.16.1
@@ -32,10 +33,10 @@ pycparser==3.0
 PyJWT==2.12.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
-redis==7.4.0
 razorpay==1.4.2
+redis==7.4.0
 requests==2.33.1
-setuptools<70
+setuptools==69.5.1
 six==1.17.0
 sqlparse==0.5.5
 stripe==15.0.1
