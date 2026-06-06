@@ -28,9 +28,17 @@ class RoomSizeSerializer(serializers.ModelSerializer):
 
 
 class GeneratedImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
     class Meta:
         model = GeneratedImage
         fields = ['id', 'image', 'created_at']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if request and obj.image:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url if obj.image else None
 
 
 class GenerationJobSerializer(serializers.ModelSerializer):
@@ -39,6 +47,7 @@ class GenerationJobSerializer(serializers.ModelSerializer):
     design_style = DesignStyleSerializer(read_only=True)
     color_theme = ColorThemeSerializer(read_only=True)
     room_size = RoomSizeSerializer(read_only=True)
+    input_image = serializers.SerializerMethodField()
 
     class Meta:
         model = GenerationJob
@@ -48,6 +57,12 @@ class GenerationJobSerializer(serializers.ModelSerializer):
             'status', 'error_message', 'created_at', 'completed_at', 'images'
         ]
         read_only_fields = ['prompt_used', 'status', 'error_message', 'created_at', 'completed_at']
+
+    def get_input_image(self, obj):
+        request = self.context.get('request')
+        if request and obj.input_image:
+            return request.build_absolute_uri(obj.input_image.url)
+        return obj.input_image.url if obj.input_image else None
 
 
 class GenerationJobCreateSerializer(serializers.Serializer):

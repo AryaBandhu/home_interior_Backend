@@ -119,7 +119,7 @@ class GenerationView(APIView):
         # deduct credit
         user.deduct_credit(count=1)
 
-        return Response(GenerationJobSerializer(job).data, status=status.HTTP_201_CREATED)
+        return Response(GenerationJobSerializer(job, context={'request': request}).data, status=status.HTTP_201_CREATED)
 
 
 class HistoryView(APIView):
@@ -129,7 +129,7 @@ class HistoryView(APIView):
         jobs = GenerationJob.objects.filter(
             user=request.user
         ).prefetch_related('images').order_by('-created_at')
-        return Response(GenerationJobSerializer(jobs, many=True).data)
+        return Response(GenerationJobSerializer(jobs, many=True, context={'request': request}).data)
 
 
 class GenerationDetailView(APIView):
@@ -140,4 +140,4 @@ class GenerationDetailView(APIView):
             job = GenerationJob.objects.prefetch_related('images').get(pk=pk, user=request.user)
         except GenerationJob.DoesNotExist:
             return Response({'error': 'Not found'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(GenerationJobSerializer(job).data)
+        return Response(GenerationJobSerializer(job, context={'request': request}).data)

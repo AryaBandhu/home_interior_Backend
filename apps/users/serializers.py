@@ -7,8 +7,8 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'credits', 'is_subscribed', 'subscription_end_date', 'created_at']
-        read_only_fields = ['id', 'credits', 'is_subscribed', 'subscription_end_date', 'created_at']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'credits', 'is_subscribed', 'subscription_end_date', 'created_at']
+        read_only_fields = ['id', 'email', 'credits', 'is_subscribed', 'subscription_end_date', 'created_at']
 
 
 class GoogleAuthSerializer(serializers.Serializer):
