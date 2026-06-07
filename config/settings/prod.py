@@ -34,4 +34,4 @@ CSRF_TRUSTED_ORIGINS = config(
 ).split(',')
 
 # Media
-MEDIA_ROOT = config('MEDIA_ROOT', default=str(BASE_DIR / 'media'))
+MEDIA_ROOT = BASE_DIR / config('MEDIA_ROOT', default='media')
