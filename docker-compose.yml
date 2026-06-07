@@ -6,36 +6,52 @@ services:
     command: >
       sh -c "python manage.py migrate &&
              python manage.py seed_data &&
-             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --reload"
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --timeout 120"
     volumes:
-      - .:/app
       - media_volume:/app/media
+      - static_volume:/app/staticfiles
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
-      - DJANGO_ENV=dev
-      - DJANGO_SETTINGS_MODULE=config.settings
+      - DJANGO_ENV=production
     depends_on:
+      - db
       - redis
+    restart: always
 
   celery:
     build: .
     command: celery -A config worker --loglevel=info
-    volumes:
-      - .:/app
     env_file:
       - .env
     environment:
-      - DJANGO_ENV=dev
+      - DJANGO_ENV=production
     depends_on:
+      - db
       - redis
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: roomai
+      POSTGRES_USER: roomai_user
+      POSTGRES_PASSWORD: roomai_pass_123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6380:6379"
+      - "6379:6379"
+    restart: always
 
 volumes:
   media_volume:
+  static_volume:
+  postgres_data:
