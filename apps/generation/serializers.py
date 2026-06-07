@@ -1,6 +1,16 @@
 from rest_framework import serializers
+from django.conf import settings
 from .models import GenerationJob, GeneratedImage
 from apps.prompts.models import RoomType, DesignStyle, ColorTheme, RoomSize
+
+
+def get_media_url(path):
+    """Build full media URL using FRONTEND_URL or fallback."""
+    base = settings.FRONTEND_URL.rstrip('/')
+    # Use the API domain, not frontend
+    from decouple import config
+    api_base = config('API_BASE_URL', default=base)
+    return f"{api_base}{settings.MEDIA_URL}{path}"
 
 
 class RoomTypeSerializer(serializers.ModelSerializer):
@@ -35,10 +45,9 @@ class GeneratedImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image', 'created_at']
 
     def get_image(self, obj):
-        request = self.context.get('request')
-        if request and obj.image:
-            return request.build_absolute_uri(obj.image.url)
-        return obj.image.url if obj.image else None
+        if obj.image:
+            return get_media_url(str(obj.image))
+        return None
 
 
 class GenerationJobSerializer(serializers.ModelSerializer):
@@ -59,10 +68,9 @@ class GenerationJobSerializer(serializers.ModelSerializer):
         read_only_fields = ['prompt_used', 'status', 'error_message', 'created_at', 'completed_at']
 
     def get_input_image(self, obj):
-        request = self.context.get('request')
-        if request and obj.input_image:
-            return request.build_absolute_uri(obj.input_image.url)
-        return obj.input_image.url if obj.input_image else None
+        if obj.input_image:
+            return get_media_url(str(obj.input_image))
+        return None
 
 
 class GenerationJobCreateSerializer(serializers.Serializer):
