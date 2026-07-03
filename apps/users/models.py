@@ -4,7 +4,7 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)
-    credits = models.IntegerField(default=20)
+    credits = models.IntegerField(default=3)
     is_subscribed = models.BooleanField(default=False)
     subscription_end_date = models.DateTimeField(null=True, blank=True)
     google_id = models.CharField(max_length=255, null=True, blank=True)
