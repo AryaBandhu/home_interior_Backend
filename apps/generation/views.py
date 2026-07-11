@@ -9,8 +9,9 @@ import uuid
 
 from .models import GenerationJob, GeneratedImage
 from .serializers import GenerationJobCreateSerializer, GenerationJobSerializer
-from .services import generate_images   
-from apps.prompts.models import RoomType, DesignStyle, ColorTheme, RoomSize, PromptTemplate
+from .services import generate_images
+from .prompt import build_prompt
+from apps.prompts.models import RoomType, DesignStyle, ColorTheme, RoomSize
 from apps.subscriptions.services import check_and_expire_subscriptions
 
 
@@ -55,23 +56,10 @@ class GenerationView(APIView):
         room_size = RoomSize.objects.get(id=data['room_size_id'])
         num_samples = data['num_samples']
 
-        # find matching prompt template
-        try:
-            prompt_template = PromptTemplate.objects.get(
-                room_type=room_type,
-                design_style=design_style,
-                color_theme=color_theme,
-                room_size=room_size,
-                is_active=True,
-            )
-            prompt_text = prompt_template.prompt_text
-        except PromptTemplate.DoesNotExist:
-            # fallback prompt if no template found
-            prompt_text = (
-                f"Redesign this {room_size.name.lower()} {room_type.name.lower()} "
-                f"in {design_style.name.lower()} style with {color_theme.name.lower()} color theme. "
-                f"Photorealistic, high quality interior design."
-            )
+        # build dynamic prompt
+        prompt_text = build_prompt(
+            room_type.slug, design_style.slug, color_theme.slug, room_size.slug
+        )
 
         # create job
         job = GenerationJob.objects.create(

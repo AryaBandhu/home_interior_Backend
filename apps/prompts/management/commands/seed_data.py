@@ -1,13 +1,13 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from apps.prompts.models import RoomType, RoomSize, DesignStyle, ColorTheme, PromptTemplate
+from apps.prompts.models import RoomType, RoomSize, DesignStyle, ColorTheme
 from apps.subscriptions.models import SubscriptionPlan
 
 User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Seed database with dummy data for development'
+    help = 'Seed database with initial data'
 
     def handle(self, *args, **options):
         self.seed_room_types()
@@ -30,7 +30,7 @@ class Command(BaseCommand):
             ('Balcony', 'balcony'),
         ]
         for name, slug in types:
-            RoomType.objects.get_or_create(name=name, defaults={'slug': slug})
+            RoomType.objects.get_or_create(slug=slug, defaults={'name': name})
         self.stdout.write(f'  Created {len(types)} room types')
 
     def seed_room_sizes(self):
@@ -41,7 +41,7 @@ class Command(BaseCommand):
             ('Extra Large', 'extra-large'),
         ]
         for name, slug in sizes:
-            RoomSize.objects.get_or_create(name=name, defaults={'slug': slug})
+            RoomSize.objects.get_or_create(slug=slug, defaults={'name': name})
         self.stdout.write(f'  Created {len(sizes)} room sizes')
 
     def seed_design_styles(self):
@@ -58,7 +58,7 @@ class Command(BaseCommand):
             ('Rustic', 'rustic'),
         ]
         for name, slug in styles:
-            DesignStyle.objects.get_or_create(name=name, defaults={'slug': slug})
+            DesignStyle.objects.get_or_create(slug=slug, defaults={'name': name})
         self.stdout.write(f'  Created {len(styles)} design styles')
 
     def seed_color_themes(self):
@@ -73,7 +73,7 @@ class Command(BaseCommand):
             ('Dark & Moody', 'dark-moody'),
         ]
         for name, slug in themes:
-            ColorTheme.objects.get_or_create(name=name, defaults={'slug': slug})
+            ColorTheme.objects.get_or_create(slug=slug, defaults={'name': name})
         self.stdout.write(f'  Created {len(themes)} color themes')
 
     def seed_subscription_plans(self):
