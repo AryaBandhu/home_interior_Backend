@@ -102,6 +102,15 @@ REST_FRAMEWORK = {
 CELERY_BROKER_URL = config('REDIS_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('REDIS_URL', default='redis://localhost:6379/0')
 
+# Celery Beat schedule
+from celery.schedules import crontab
+CELERY_BEAT_SCHEDULE = {
+    'expire-subscriptions-daily': {
+        'task': 'apps.subscriptions.tasks.expire_subscriptions',
+        'schedule': crontab(hour=0, minute=0),  # runs daily at midnight
+    },
+}
+
 # CORS
 from decouple import config
 
@@ -122,11 +131,11 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 
 JAZZMIN_SETTINGS = {
-    "site_title": "Room AI Admin",
-    "site_header": "Room AI",
-    "site_brand": "Room AI",
-    "welcome_sign": "Welcome to Room AI Admin",
-    "copyright": "Room AI",
+    "site_title": "RoomCraft Admin",
+    "site_header": "RoomCraft",
+    "site_brand": "RoomCraft",
+    "welcome_sign": "Welcome to RoomCraft Admin",
+    "copyright": "RoomCraft",
 
     # top menu
     "topmenu_links": [

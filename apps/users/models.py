@@ -15,12 +15,13 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = ['username']
 
     def has_credits(self):
-        return self.is_subscribed or self.credits > 0
+        return self.credits == -1 or self.credits > 0
 
     def deduct_credit(self, count=1):
-        if not self.is_subscribed:
-            self.credits = max(0, self.credits - count)
-            self.save()
+        if self.credits == -1:
+            return  # unlimited
+        self.credits = max(0, self.credits - count)
+        self.save()
 
     def __str__(self):
         return self.email

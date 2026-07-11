@@ -80,6 +80,13 @@ def activate_subscription(user, plan, payment_reference=''):
     # Update user flags
     user.is_subscribed = True
     user.subscription_end_date = expires_at
+
+    # Grant credits based on plan
+    if plan.unlimited:
+        user.credits = -1  # -1 signals unlimited
+    else:
+        user.credits += plan.credits_granted
+
     user.save()
 
     return subscription
@@ -100,4 +107,7 @@ def check_and_expire_subscriptions(user):
         active_sub.save()
         user.is_subscribed = False
         user.subscription_end_date = None
+        # Reset unlimited credits to 0 on expiry
+        if user.credits == -1:
+            user.credits = 0
         user.save()

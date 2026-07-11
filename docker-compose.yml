@@ -33,6 +33,18 @@ services:
       - redis
     restart: always
 
+  celery-beat:
+    build: .
+    command: celery -A config beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DJANGO_ENV=production
+    depends_on:
+      - db
+      - redis
+    restart: always
+
   db:
     image: postgres:15-alpine
     environment:

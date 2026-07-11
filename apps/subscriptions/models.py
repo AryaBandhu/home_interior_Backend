@@ -6,12 +6,14 @@ class SubscriptionPlan(models.Model):
     name = models.CharField(max_length=100, unique=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     duration_days = models.IntegerField()
+    credits_granted = models.IntegerField(default=0, help_text="Number of credits added on purchase")
+    unlimited = models.BooleanField(default=False, help_text="If True, user gets unlimited generations")
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.name} - ${self.price}"
+        return f"{self.name} - ₹{self.price}"
 
 
 class UserSubscription(models.Model):

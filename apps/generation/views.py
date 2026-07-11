@@ -11,6 +11,7 @@ from .models import GenerationJob, GeneratedImage
 from .serializers import GenerationJobCreateSerializer, GenerationJobSerializer
 from .services import generate_images   
 from apps.prompts.models import RoomType, DesignStyle, ColorTheme, RoomSize, PromptTemplate
+from apps.subscriptions.services import check_and_expire_subscriptions
 
 
 class OptionsView(APIView):
@@ -31,6 +32,10 @@ class GenerationView(APIView):
 
     def post(self, request):
         user = request.user
+
+        # check subscription expiry before credit check
+        check_and_expire_subscriptions(user)
+        user.refresh_from_db()
 
         # check credits
         if not user.has_credits():

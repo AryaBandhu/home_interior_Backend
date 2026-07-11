@@ -5,11 +5,9 @@ from apps.prompts.models import RoomType, DesignStyle, ColorTheme, RoomSize
 
 
 def get_media_url(path):
-    """Build full media URL using FRONTEND_URL or fallback."""
-    base = settings.FRONTEND_URL.rstrip('/')
-    # Use the API domain, not frontend
+    """Build full media URL using API base domain."""
     from decouple import config
-    api_base = config('API_BASE_URL', default=base)
+    api_base = config('API_BASE_URL', default='').split(',')[0].strip().rstrip('/')
     return f"{api_base}{settings.MEDIA_URL}{path}"
 
 
