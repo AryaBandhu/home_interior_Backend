@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import PlanListView, CreateOrderView, VerifyPaymentView, SubscriptionStatusView, RazorpayWebhookView
+from .views import PlanListView, PublicPlanListView, CreateOrderView, VerifyPaymentView, SubscriptionStatusView, RazorpayWebhookView
 
 urlpatterns = [
     path('plans/',          PlanListView.as_view(),          name='plans'),
+    path('plans-public/',   PublicPlanListView.as_view(),    name='plans-public'),
     path('create-order/',   CreateOrderView.as_view(),       name='create-order'),
     path('verify-payment/', VerifyPaymentView.as_view(),     name='verify-payment'),
     path('status/',         SubscriptionStatusView.as_view(),name='subscription-status'),

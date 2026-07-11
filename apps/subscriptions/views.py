@@ -25,6 +25,15 @@ class PlanListView(APIView):
         return Response(SubscriptionPlanSerializer(plans, many=True).data)
 
 
+class PublicPlanListView(APIView):
+    """Get all active subscription plans (public, no auth required)."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        plans = SubscriptionPlan.objects.filter(is_active=True).order_by('price')
+        return Response(SubscriptionPlanSerializer(plans, many=True).data)
+
+
 class CreateOrderView(APIView):
     """
     Create a Razorpay Order for a plan.
