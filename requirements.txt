@@ -33,7 +33,7 @@ pycparser==3.0
 PyJWT==2.12.1
 python-dateutil==2.9.0.post0
 python-decouple==3.8
-razorpay==1.4.2
+cashfree-pg==4.1.7
 redis==7.4.0
 requests==2.33.1
 setuptools==69.5.1

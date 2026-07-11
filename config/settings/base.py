@@ -220,8 +220,9 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
 }
 
-# Razorpay
-RAZORPAY_KEY_ID      = config('RAZORPAY_KEY_ID', default='')
-RAZORPAY_KEY_SECRET  = config('RAZORPAY_KEY_SECRET', default='')
-RAZORPAY_WEBHOOK_SECRET = config('RAZORPAY_WEBHOOK_SECRET', default='')
+# Cashfree
+CASHFREE_APP_ID = config('CASHFREE_APP_ID', default='')
+CASHFREE_SECRET_KEY = config('CASHFREE_SECRET_KEY', default='')
+CASHFREE_ENV = config('CASHFREE_ENV', default='SANDBOX')  # SANDBOX or PRODUCTION
+
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')

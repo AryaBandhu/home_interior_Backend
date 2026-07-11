@@ -1,60 +1,140 @@
-import razorpay
+import requests
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 from .models import SubscriptionPlan, UserSubscription
 
-client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+def get_cashfree_headers():
+    return {
+        'x-client-id': settings.CASHFREE_APP_ID,
+        'x-client-secret': settings.CASHFREE_SECRET_KEY,
+        'x-api-version': '2023-08-01',
+        'Content-Type': 'application/json',
+    }
+
+
+def get_cashfree_base_url():
+    if settings.CASHFREE_ENV == 'PRODUCTION':
+        return 'https://api.cashfree.com/pg'
+    return 'https://sandbox.cashfree.com/pg'
 
 
 def create_order(user, plan):
     """
-    Create a Razorpay Order server-side.
-    The frontend uses this order_id to open the Razorpay checkout popup.
+    Create a Cashfree order server-side.
+    Returns order_id and payment_session_id for frontend checkout.
     """
+    import uuid
+    order_id = f"order_{user.id}_{plan.id}_{uuid.uuid4().hex[:8]}"
+    amount = float(plan.price)
+
+    payload = {
+        'order_id': order_id,
+        'order_amount': amount,
+        'order_currency': 'INR',
+        'customer_details': {
+            'customer_id': str(user.id),
+            'customer_email': user.email,
+            'customer_phone': '9999999999',  # fallback, Cashfree requires phone
+            'customer_name': user.get_full_name() or user.username or 'Customer',
+        },
+        'order_meta': {
+            'return_url': f"{settings.FRONTEND_URL.split(',')[0].strip()}/pricing?order_id={{order_id}}",
+        },
+        'order_note': f'user_{user.id}_plan_{plan.id}',
+        'order_tags': {
+            'user_id': str(user.id),
+            'plan_id': str(plan.id),
+        },
+    }
+
     try:
-        order = client.order.create({
-            'amount': int(plan.price * 100),   # paise (INR) or smallest currency unit
-            'currency': 'INR',                  # change to your currency if needed
-            'receipt': f'user_{user.id}_plan_{plan.id}',
-            'notes': {
-                'user_id': str(user.id),
-                'plan_id': str(plan.id),
-            }
-        })
+        response = requests.post(
+            f"{get_cashfree_base_url()}/orders",
+            headers=get_cashfree_headers(),
+            json=payload,
+            timeout=15,
+        )
+        response.raise_for_status()
+        data = response.json()
+
         return {
             'success': True,
-            'order_id': order['id'],
-            'amount': order['amount'],
-            'currency': order['currency'],
-            'key_id': settings.RAZORPAY_KEY_ID,   # frontend needs this to open checkout
+            'order_id': data['order_id'],
+            'payment_session_id': data['payment_session_id'],
+            'order_amount': amount,
+            'order_currency': 'INR',
+            'env': settings.CASHFREE_ENV,
         }
-    except razorpay.errors.BadRequestError as e:
+    except requests.exceptions.HTTPError as e:
+        error_msg = e.response.json().get('message', str(e)) if e.response else str(e)
+        return {'success': False, 'error': error_msg}
+    except Exception as e:
         return {'success': False, 'error': str(e)}
 
 
-def verify_and_activate(user, plan, payment_data):
+def verify_payment(order_id):
     """
-    Verify Razorpay payment signature, then activate subscription.
-    Call this after frontend completes payment and sends back payment details.
-
-    payment_data must contain:
-        razorpay_order_id
-        razorpay_payment_id
-        razorpay_signature
+    Verify payment status with Cashfree API.
+    Returns True if payment is successful.
     """
     try:
-        client.utility.verify_payment_signature({
-            'razorpay_order_id':   payment_data['razorpay_order_id'],
-            'razorpay_payment_id': payment_data['razorpay_payment_id'],
-            'razorpay_signature':  payment_data['razorpay_signature'],
-        })
-    except razorpay.errors.SignatureVerificationError:
-        return {'success': False, 'error': 'Invalid payment signature'}
+        response = requests.get(
+            f"{get_cashfree_base_url()}/orders/{order_id}/payments",
+            headers=get_cashfree_headers(),
+            timeout=15,
+        )
+        response.raise_for_status()
+        payments = response.json()
 
-    subscription = activate_subscription(
-        user, plan, payment_reference=payment_data['razorpay_payment_id']
-    )
+        for payment in payments:
+            if payment.get('payment_status') == 'SUCCESS':
+                return {
+                    'success': True,
+                    'payment_id': payment.get('cf_payment_id'),
+                }
+
+        return {'success': False, 'error': 'Payment not successful'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
+def get_order_details(order_id):
+    """Fetch order details from Cashfree."""
+    try:
+        response = requests.get(
+            f"{get_cashfree_base_url()}/orders/{order_id}",
+            headers=get_cashfree_headers(),
+            timeout=15,
+        )
+        response.raise_for_status()
+        return {'success': True, 'data': response.json()}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
+def verify_and_activate(user, plan, order_id):
+    """
+    Verify Cashfree payment and activate subscription.
+    """
+    result = verify_payment(order_id)
+    if not result['success']:
+        return result
+
+    payment_id = result.get('payment_id', order_id)
+
+    # Check if already activated (idempotency)
+    already_active = UserSubscription.objects.filter(
+        user=user,
+        status=UserSubscription.STATUS_ACTIVE,
+        payment_reference=str(payment_id),
+    ).exists()
+
+    if already_active:
+        return {'success': True, 'message': 'Already activated'}
+
+    subscription = activate_subscription(user, plan, payment_reference=str(payment_id))
     return {'success': True, 'subscription': subscription}
 
 
